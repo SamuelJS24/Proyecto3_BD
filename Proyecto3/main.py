@@ -21,7 +21,7 @@ client = MongoClient(os.environ["MONGO_URI"])
 #client = MongoClient("TU_URI_DE_MONGODB")
 
 # Base de datos del proyecto Dann-Alpes
-db = client["DannAlpes"] 
+db = client["ISIS2304F15202610"] 
 
 @app.get("/")
 def inicio():
