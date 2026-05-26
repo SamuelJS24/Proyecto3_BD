@@ -71,24 +71,16 @@ def votar_resena(resena_id: str):
 def get_top_hoteles(fechaInicio: str, fechaFin: str):
     try:
         pipeline = [
+            {"$addFields": {
+                "fecha_obj": {"$dateFromString": {"dateString": "$fecha_creacion", "onError": None}},
+                "cal_num": {"$toDouble": "$calificacion"}
+            }},
             {"$match": {
-                "fecha_creacion": {
+                "fecha_obj": {
                     "$gte": datetime.fromisoformat(fechaInicio),
                     "$lte": datetime.fromisoformat(fechaFin)
                 },
-                "estado": "publicada"
-            }},
-            {"$addFields": {
-                "cal_num": {
-                    "$convert": {
-                        "input": "$calificacion",
-                        "to": "double",
-                        "onError": None,
-                        "onNull": None
-                    }
-                }
-            }},
-            {"$match": {
+                "estado": "publicada",
                 "cal_num": {"$ne": None}
             }},
             {"$group": {
