@@ -71,24 +71,31 @@ def votar_resena(resena_id: str):
 def get_top_hoteles(fechaInicio: str, fechaFin: str):
     try:
         pipeline = [
+            {"$match": {
+                "calificacion": {"$nin": ["", None]},
+                "fecha_creacion": {"$nin": ["", None]},
+                "estado": "publicada"
+            }},
             {"$addFields": {
-                "fecha_obj": {"$dateFromString": {"dateString": "$fecha_creacion", "onError": None}},
-                "cal_num": {"$toDouble": "$calificacion"}
+                "fecha_obj": {"$dateFromString": {
+                    "dateString": "$fecha_creacion",
+                    "onError": None
+                }},
+                "cal_num": {
+                    "$convert": {
+                        "input": "$calificacion",
+                        "to": "double",
+                        "onError": None,
+                        "onNull": None
+                    }
+                }
             }},
             {"$match": {
                 "fecha_obj": {
                     "$gte": datetime.fromisoformat(fechaInicio),
                     "$lte": datetime.fromisoformat(fechaFin)
                 },
-                "estado": "publicada",
-                "cal_num": {
-                    "$convert": {
-                        "input": "$calificacion",
-                         "to": "double",
-                        "onError": None,
-                        "onNull": None
-                    }
-                }
+                "cal_num": {"$ne": None}
             }},
             {"$group": {
                 "_id": "$id_hotel",
@@ -100,7 +107,7 @@ def get_top_hoteles(fechaInicio: str, fechaFin: str):
         return list(db["resenas"].aggregate(pipeline))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
+    
 # RFC2: EVOLUCIÓN MENSUAL
 @app.get('/rfc2/{hotel_id}')
 def get_evolucion(hotel_id: int, anio: int = Query(2026)):
