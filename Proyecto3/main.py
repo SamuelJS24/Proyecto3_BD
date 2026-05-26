@@ -160,3 +160,14 @@ def get_comparativo_ciudad(ciudad: str = Query(...)):
         return list(db["resenas"].aggregate(pipeline))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get('/diagnostico')
+def diagnostico():
+    muestra = list(db["resenas"].find({}, {
+        "calificacion": 1,
+        "estado": 1, 
+        "fecha_creacion": 1,
+        "id_hotel": 1,
+        "_id": 0
+    }).limit(5))
+    return muestra
