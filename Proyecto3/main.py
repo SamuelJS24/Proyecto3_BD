@@ -81,7 +81,14 @@ def get_top_hoteles(fechaInicio: str, fechaFin: str):
                     "$lte": datetime.fromisoformat(fechaFin)
                 },
                 "estado": "publicada",
-                "cal_num": {"$ne": None}
+                "cal_num": {
+                    "$convert": {
+                        "input": "$calificacion",
+                         "to": "double",
+                        "onError": None,
+                        "onNull": None
+                    }
+                }
             }},
             {"$group": {
                 "_id": "$id_hotel",
