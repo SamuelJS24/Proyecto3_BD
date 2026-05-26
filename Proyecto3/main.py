@@ -76,12 +76,24 @@ def get_top_hoteles(fechaInicio: str, fechaFin: str):
                     "$gte": datetime.fromisoformat(fechaInicio),
                     "$lte": datetime.fromisoformat(fechaFin)
                 },
-                "estado": "publicada",
-                "calificacion": {"$exists": True, "$nin": ["", None]}
+                "estado": "publicada"
+            }},
+            {"$addFields": {
+                "cal_num": {
+                    "$convert": {
+                        "input": "$calificacion",
+                        "to": "double",
+                        "onError": None,
+                        "onNull": None
+                    }
+                }
+            }},
+            {"$match": {
+                "cal_num": {"$ne": None}
             }},
             {"$group": {
                 "_id": "$id_hotel",
-                "calificacion_promedio": {"$avg": "$calificacion"}
+                "calificacion_promedio": {"$avg": "$cal_num"}
             }},
             {"$sort": {"calificacion_promedio": -1}},
             {"$limit": 10}
