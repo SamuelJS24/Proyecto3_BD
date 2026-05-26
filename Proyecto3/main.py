@@ -73,13 +73,15 @@ def get_top_hoteles(fechaInicio: str, fechaFin: str):
         pipeline = [
             {"$match": {
                 "fecha_creacion": {
-                    "$gte": fechaInicio,
-                    "$lte": f"{fechaFin}T23:59:59" 
-                }
+                    "$gte": datetime.fromisoformat(fechaInicio),
+                    "$lte": datetime.fromisoformat(fechaFin)
+                },
+                "estado": "publicada",
+                "calificacion": {"$exists": True, "$ne": "", "$ne": None}  # ← AGREGAR ESTO
             }},
             {"$group": {
                 "_id": "$id_hotel",
-                "calificacion_promedio": {"$avg": {"$toDouble": "$calificacion"}}
+                "calificacion_promedio": {"$avg": "$calificacion"}
             }},
             {"$sort": {"calificacion_promedio": -1}},
             {"$limit": 10}
