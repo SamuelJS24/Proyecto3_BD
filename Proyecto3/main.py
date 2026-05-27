@@ -150,16 +150,10 @@ def get_evolucion(hotel_id: int = Path(...), anio: int = Query(2026)):
 
 
 @app.get('/rfc3')
-def get_comparativo_ciudad(ciudad: str = Query(...)):
+def get_comparativo_ciudad(ids: str = Query(...)):
     try:
-        mapeo = {
-            "bogota":    [1, 2, 3],
-            "medellin":  [4, 5],
-            "cali":      [6],
-            "cartagena": [7]
-        }
-        ciudad_limpia = ciudad.lower().replace("á","a").replace("é","e").replace("í","i").replace("ó","o").replace("ú","u")
-        ids_hoteles = mapeo.get(ciudad_limpia, [])
+        # ids llega como "2,12,15" y lo convertimos a lista
+        ids_hoteles = [int(i) for i in ids.split(",") if i.strip()]
 
         pipeline = [
             {"$match": {
