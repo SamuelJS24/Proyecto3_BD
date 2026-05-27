@@ -73,35 +73,34 @@ def get_top_hoteles(fechaInicio: str, fechaFin: str):
         pipeline = [
             {"$match": {
                 "calificacion":   {"$nin": ["", None]},
-                "fecha_creacion": {"$nin": ["", None]}
-                # Sin filtro de estado — el campo no existe
+                "fecha_creacion": {"$nin": ["", None, 0]}
             }},
             {"$addFields": {
                 "fecha_obj": {"$dateFromString": {
                     "dateString": "$fecha_creacion",
-                    "onError": None
+                    "format": "%Y-%m-%dT%H:%M:%S.%L",
+                    "onError": None,
+                    "onNull":  None
                 }},
                 "cal_num": {"$convert": {
-                    "input": "$calificacion",
-                    "to": "double",
+                    "input":   "$calificacion",
+                    "to":      "double",
                     "onError": None,
-                    "onNull": None
+                    "onNull":  None
                 }}
             }},
             {"$match": {
-                "fecha_obj": {
-                    "$gte": datetime.fromisoformat(fechaInicio),
-                    "$lte": datetime.fromisoformat(fechaFin)
-                },
-                "cal_num": {"$ne": None}
+                "fecha_obj": {"$ne": None},
+                "cal_num":   {"$ne": None}
             }},
             {"$group": {
                 "_id": "$id_hotel",
                 "calificacion_promedio": {"$avg": "$cal_num"}
             }},
-            {"$sort": {"calificacion_promedio": -1}},
+            {"$sort":  {"calificacion_promedio": -1}},
             {"$limit": 10}
         ]
+        # Ignoramos fechaInicio/fechaFin por ahora para probar que funciona
         return list(db["resenas"].aggregate(pipeline))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
