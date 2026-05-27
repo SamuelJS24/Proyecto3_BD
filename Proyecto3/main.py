@@ -77,7 +77,7 @@ def get_top_hoteles(fechaInicio: str, fechaFin: str):
             }},
             {"$addFields": {
                 "fecha_obj": {"$dateFromString": {
-                    "dateString": "$fecha_creacion",
+                    "dateString": {"$substrBytes": ["$fecha_creacion", 0, 23]},
                     "format": "%Y-%m-%dT%H:%M:%S.%L",
                     "onError": None,
                     "onNull":  None
@@ -91,7 +91,11 @@ def get_top_hoteles(fechaInicio: str, fechaFin: str):
             }},
             {"$match": {
                 "fecha_obj": {"$ne": None},
-                "cal_num":   {"$ne": None}
+                "cal_num":   {"$ne": None},
+                "fecha_obj": {
+                    "$gte": datetime.fromisoformat(fechaInicio),
+                    "$lte": datetime.fromisoformat(fechaFin)
+                }
             }},
             {"$group": {
                 "_id": "$id_hotel",
@@ -100,29 +104,44 @@ def get_top_hoteles(fechaInicio: str, fechaFin: str):
             {"$sort":  {"calificacion_promedio": -1}},
             {"$limit": 10}
         ]
-        # Ignoramos fechaInicio/fechaFin por ahora para probar que funciona
         return list(db["resenas"].aggregate(pipeline))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
-# RFC2: EVOLUCIÓN MENSUAL
+
+
 @app.get('/rfc2/{hotel_id}')
-def get_evolucion(hotel_id: int, anio: int = Query(2026)):
+def get_evolucion(hotel_id: int = Path(...), anio: int = Query(2026)):
     try:
         pipeline = [
             {"$match": {
-                "id_hotel": hotel_id,
-                "fecha_creacion": {
-                    "$gte": f"{anio}-01-01T00:00:00",
-                    "$lte": f"{anio}-12-31T23:59:59"
-                }
+                "id_hotel":     hotel_id,
+                "calificacion": {"$nin": ["", None]},
+                "fecha_creacion": {"$nin": ["", None, 0]}
             }},
             {"$addFields": {
-                "fecha_obj": { "$dateFromString": { "dateString": "$fecha_creacion" } }
+                "fecha_obj": {"$dateFromString": {
+                    "dateString": {"$substrBytes": ["$fecha_creacion", 0, 23]},
+                    "format": "%Y-%m-%dT%H:%M:%S.%L",
+                    "onError": None,
+                    "onNull":  None
+                }},
+                "cal_num": {"$convert": {
+                    "input":   "$calificacion",
+                    "to":      "double",
+                    "onError": None,
+                    "onNull":  None
+                }}
+            }},
+            {"$match": {
+                "fecha_obj": {
+                    "$gte": datetime(anio, 1, 1),
+                    "$lte": datetime(anio, 12, 31, 23, 59, 59)
+                },
+                "cal_num": {"$ne": None}
             }},
             {"$group": {
                 "_id": {"$month": "$fecha_obj"},
-                "calificacion_promedio_mes": {"$avg": {"$toDouble": "$calificacion"}}
+                "calificacion_promedio_mes": {"$avg": "$cal_num"}
             }},
             {"$sort": {"_id": 1}}
         ]
@@ -130,35 +149,44 @@ def get_evolucion(hotel_id: int, anio: int = Query(2026)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# RFC3: COMPARATIVO CIUDAD
+
 @app.get('/rfc3')
 def get_comparativo_ciudad(ciudad: str = Query(...)):
     try:
         mapeo = {
-            "bogota": [1, 2, 3], 
-            "medellin": [4, 5], 
-            "cali": [6], 
+            "bogota":    [1, 2, 3],
+            "medellin":  [4, 5],
+            "cali":      [6],
             "cartagena": [7]
         }
-        
-        ciudad_limpia = ciudad.lower().replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u")
+        ciudad_limpia = ciudad.lower().replace("á","a").replace("é","e").replace("í","i").replace("ó","o").replace("ú","u")
         ids_hoteles = mapeo.get(ciudad_limpia, [])
 
         pipeline = [
             {"$match": {
-                "id_hotel": {"$in": ids_hoteles}
+                "id_hotel":     {"$in": ids_hoteles},
+                "calificacion": {"$nin": ["", None]}
             }},
             {"$group": {
                 "_id": "$id_hotel",
                 "calificacion_promedio_general": {"$avg": {"$toDouble": "$calificacion"}},
-                "total_reseñas": {"$sum": 1},
-                "reseñas_con_respuesta": {
+                "total_resenas": {"$sum": 1},
+                "resenas_con_respuesta": {
                     "$sum": {"$cond": [{"$ifNull": ["$respuesta", False]}, 1, 0]}
                 },
-                "reseñas_destacadas": {
+                "resenas_destacadas": {
                     "$sum": {"$cond": [{"$eq": ["$destacada", True]}, 1, 0]}
                 }
-            }}
+            }},
+            {"$addFields": {
+                "porcentaje_con_respuesta": {
+                    "$multiply": [{"$divide": ["$resenas_con_respuesta", "$total_resenas"]}, 100]
+                },
+                "porcentaje_destacadas": {
+                    "$multiply": [{"$divide": ["$resenas_destacadas", "$total_resenas"]}, 100]
+                }
+            }},
+            {"$sort": {"calificacion_promedio_general": -1}}
         ]
         return list(db["resenas"].aggregate(pipeline))
     except Exception as e:
