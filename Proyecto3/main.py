@@ -69,42 +69,7 @@ def votar_resena(resena_id: str):
 # RFC1: TOP 10 HOTELES
 @app.get('/rfc1')
 def get_top_hoteles(fechaInicio: str, fechaFin: str):
-    try:
-        pipeline = [
-            {"$match": {
-                "calificacion":   {"$nin": ["", None]},
-                "fecha_creacion": {"$nin": ["", None, 0]}
-            }},
-            {"$addFields": {
-                "fecha_obj": {"$dateFromString": {
-                    "dateString": "$fecha_creacion",
-                    "format": "%Y-%m-%dT%H:%M:%S.%L",
-                    "onError": None,
-                    "onNull":  None
-                }},
-                "cal_num": {"$convert": {
-                    "input":   "$calificacion",
-                    "to":      "double",
-                    "onError": None,
-                    "onNull":  None
-                }}
-            }},
-            {"$match": {
-                "fecha_obj": {"$ne": None},
-                "cal_num":   {"$ne": None}
-            }},
-            {"$group": {
-                "_id": "$id_hotel",
-                "calificacion_promedio": {"$avg": "$cal_num"}
-            }},
-            {"$sort":  {"calificacion_promedio": -1}},
-            {"$limit": 10}
-        ]
-        # Ignoramos fechaInicio/fechaFin por ahora para probar que funciona
-        return list(db["resenas"].aggregate(pipeline))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    
+    return {"version": "nueva", "mensaje": "deploy funcionando"}
 # RFC2: EVOLUCIÓN MENSUAL
 @app.get('/rfc2/{hotel_id}')
 def get_evolucion(hotel_id: int, anio: int = Query(2026)):
