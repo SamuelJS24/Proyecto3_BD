@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Path
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
 from datetime import datetime
@@ -90,12 +90,11 @@ def get_top_hoteles(fechaInicio: str, fechaFin: str):
                 }}
             }},
             {"$match": {
-                "fecha_obj": {"$ne": None},
-                "cal_num":   {"$ne": None},
-                "fecha_obj": {
-                    "$gte": datetime.fromisoformat(fechaInicio),
-                    "$lte": datetime.fromisoformat(fechaFin)
-                }
+            "fecha_obj": {
+                "$gte": datetime.fromisoformat(fechaInicio + "T00:00:00"),
+                "$lte": datetime.fromisoformat(fechaFin + "T23:59:59")
+            },
+                "cal_num": {"$ne": None}
             }},
             {"$group": {
                 "_id": "$id_hotel",
