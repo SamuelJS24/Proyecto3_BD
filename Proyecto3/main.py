@@ -72,23 +72,21 @@ def get_top_hoteles(fechaInicio: str, fechaFin: str):
     try:
         pipeline = [
             {"$match": {
-                "calificacion": {"$nin": ["", None]},
-                "fecha_creacion": {"$nin": ["", None]},
-                "estado": "publicada"
+                "calificacion":   {"$nin": ["", None]},
+                "fecha_creacion": {"$nin": ["", None]}
+                # Sin filtro de estado — el campo no existe
             }},
             {"$addFields": {
                 "fecha_obj": {"$dateFromString": {
                     "dateString": "$fecha_creacion",
                     "onError": None
                 }},
-                "cal_num": {
-                    "$convert": {
-                        "input": "$calificacion",
-                        "to": "double",
-                        "onError": None,
-                        "onNull": None
-                    }
-                }
+                "cal_num": {"$convert": {
+                    "input": "$calificacion",
+                    "to": "double",
+                    "onError": None,
+                    "onNull": None
+                }}
             }},
             {"$match": {
                 "fecha_obj": {
